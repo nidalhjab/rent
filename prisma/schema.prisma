@@ -1,0 +1,160 @@
+// Catalog is modelled as a generic `Item` so accessories and shoes can be added
+// later without reshaping the browse, moderation, or reservation code.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  // Connection is supplied by the driver adapter at runtime and by
+  // prisma.config.ts for CLI commands (Prisma 7 takes no `url` here).
+  provider = "postgresql"
+}
+
+enum Category {
+  DRESS
+  ACCESSORY
+  SHOES
+}
+
+/// Quality of the piece, as declared by its owner.
+enum Condition {
+  LIKE_NEW
+  EXCELLENT
+  GOOD
+  FAIR
+}
+
+/// Rental state, independent of `Condition`.
+enum Availability {
+  AVAILABLE
+  RESERVED
+  RENTED
+  HIDDEN
+}
+
+/// Declining a submission deletes it, so there is no REJECTED state here.
+enum ModerationStatus {
+  PENDING
+  APPROVED
+}
+
+/// Exactly one image per role, which is what makes the AI back view possible.
+enum ImageRole {
+  FRONT
+  BACK
+  DETAIL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SkinTone {
+  FAIR
+  LIGHT
+  MEDIUM
+  OLIVE
+  TAN
+  DEEP
+}
+
+enum RenderStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
+model Item {
+  id            String           @id @default(cuid())
+  category      Category         @default(DRESS)
+  title         String
+  description   String?
+  color         String
+  size          String
+  /// EU / US for shoes; null for dresses.
+  sizeSystem    String?
+  condition     Condition
+  timesWorn     Int              @default(1)
+  pricePerDay   Int
+  depositAmount Int?
+  city          String
+  availability  Availability     @default(AVAILABLE)
+  moderation    ModerationStatus @default(PENDING)
+  /// Owner contact is visible to the admin only.
+  ownerName     String
+  ownerPhone    String
+  createdAt     DateTime         @default(now())
+  approvedAt    DateTime?
+
+  images       ItemImage[]
+  reservations Reservation[]
+  renders      TryOnRender[]
+
+  @@index([moderation, availability, category, createdAt])
+  @@index([moderation, createdAt])
+}
+
+model ItemImage {
+  id       String    @id @default(cuid())
+  itemId   String
+  role     ImageRole
+  publicId String
+  width    Int
+  height   Int
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, role])
+}
+
+model Reservation {
+  id            String        @id @default(cuid())
+  itemId        String
+  renterName    String
+  renterPhone   String
+  note          String?
+  preferredDate DateTime?
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  decidedAt     DateTime?
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([itemId])
+}
+
+/// Doubles as the generation job and the shared cache: visitors with identical
+/// measurements reuse the same pair of renders instead of paying for new ones.
+model TryOnRender {
+  id            String       @id @default(cuid())
+  itemId        String
+  profileHash   String
+  heightCm      Int
+  weightKg      Int
+  skinTone      SkinTone
+  bodyNote      String?
+  frontPublicId String?
+  backPublicId  String?
+  status        RenderStatus @default(PENDING)
+  error         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, profileHash])
+  @@index([itemId])
+}
+
+/// Fixed-window counter for public form abuse and admin login throttling.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}

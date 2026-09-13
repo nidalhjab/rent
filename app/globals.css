@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #fff9f7;
+  --color-surface: #ffffff;
+  --color-foreground: #2b1b22;
+  --color-muted: #8a6f79;
+  --color-subtle: #fbf1f4;
+  --color-border: #f0dee4;
+  --color-primary: #c0426b;
+  --color-primary-hover: #a8375c;
+  --color-primary-soft: #fdeef3;
+  --color-success: #1c7a5b;
+  --color-success-soft: #e6f4ef;
+  --color-warning: #9a6412;
+  --color-warning-soft: #fdf1de;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fdecea;
+
+  --font-sans: var(--font-arabic), system-ui, sans-serif;
+
+  --radius-card: 1.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* Number inputs read better without the spinners in an RTL form layout. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+@utility field {
+  @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm
+    outline-none transition placeholder:text-muted/70
+    focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60;
+}
+
+@utility label {
+  @apply mb-1.5 block text-sm font-medium text-foreground;
+}
