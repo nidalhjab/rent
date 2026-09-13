@@ -1,4 +1,5 @@
 import "dotenv/config";
+import path from "node:path";
 import { v2 as cloudinary } from "cloudinary";
 import { ITEMS_FOLDER } from "../lib/cloudinary";
 import { prisma } from "../lib/db";
@@ -17,6 +18,8 @@ type SeedItem = {
   ownerName: string;
   ownerPhone: string;
   approved: boolean;
+  /** File names under `public/`, one per role in `ROLES` order. */
+  images?: [string, string, string];
 };
 
 const items: SeedItem[] = [
@@ -103,6 +106,22 @@ const items: SeedItem[] = [
     ownerPhone: "0544445566",
     approved: false,
   },
+  {
+    title: "فستان سواريه بيج بتطريز لؤلؤي",
+    description:
+      "فستان تجريبي للعرض بصور حقيقية، تطريز لؤلؤ على الصدر والأكمام مع حزام مطابق.",
+    color: "بيج",
+    size: "M",
+    condition: "LIKE_NEW",
+    timesWorn: 1,
+    pricePerDay: 140,
+    depositAmount: 350,
+    city: "الرياض",
+    ownerName: "مريم",
+    ownerPhone: "0555556677",
+    approved: true,
+    images: ["1.jpg", "2.jpg", "3.jpg"],
+  },
 ];
 
 const ROLES: ImageRole[] = ["FRONT", "BACK", "DETAIL"];
@@ -126,12 +145,11 @@ function configureCloudinary() {
   });
 }
 
-/** Placeholder photography, fetched by Cloudinary straight from the source URL. */
-async function uploadPlaceholder(seed: string) {
-  const result = await cloudinary.uploader.upload(
-    `https://picsum.photos/seed/${seed}/900/1200`,
-    { folder: ITEMS_FOLDER },
-  );
+/** Cloudinary takes a local path or a remote URL through the same call. */
+async function upload(source: string) {
+  const result = await cloudinary.uploader.upload(source, {
+    folder: ITEMS_FOLDER,
+  });
   return {
     publicId: result.public_id,
     width: result.width,
@@ -139,20 +157,31 @@ async function uploadPlaceholder(seed: string) {
   };
 }
 
+/** Committed photography when the item ships with it, placeholders otherwise. */
+function imageSource(item: SeedItem, index: number, roleIndex: number) {
+  return item.images
+    ? path.join(process.cwd(), "public", item.images[roleIndex])
+    : `https://picsum.photos/seed/labsa-${index}-${roleIndex}/900/1200`;
+}
+
 async function main() {
   configureCloudinary();
 
-  const existing = await prisma.item.count();
-  if (existing > 0) {
-    console.log(`Skipping seed: ${existing} items already exist.`);
-    return;
-  }
-
   for (const [index, item] of items.entries()) {
+    // Titles act as the natural key so re-running only adds what is new.
+    const seeded = await prisma.item.findFirst({
+      where: { title: item.title },
+      select: { id: true },
+    });
+    if (seeded) {
+      console.log(`Skipping existing item: ${item.title}`);
+      continue;
+    }
+
     const images = await Promise.all(
       ROLES.map(async (role, roleIndex) => ({
         role,
-        ...(await uploadPlaceholder(`labsa-${index}-${roleIndex}`)),
+        ...(await upload(imageSource(item, index, roleIndex))),
       })),
     );
 
@@ -177,6 +206,8 @@ async function main() {
 
     console.log(`Created ${created.moderation} item: ${created.title}`);
   }
+
+  if ((await prisma.reservation.count()) > 0) return;
 
   const firstApproved = await prisma.item.findFirst({
     where: { moderation: "APPROVED" },
