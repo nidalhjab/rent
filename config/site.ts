@@ -10,25 +10,21 @@ export const site = {
     "منصة عربية لتأجير الفساتين المستعملة بحالة ممتازة وسعر مناسب، مع تجربة قياس ذكية بالذكاء الاصطناعي.",
   themeColor: "#c0426b",
   backgroundColor: "#fff9f7",
-  currency: "ر.س",
-  locale: "ar-SA",
+  currency: "₪",
+  locale: "ar-PS",
   cities: [
-    "الرياض",
-    "جدة",
-    "مكة المكرمة",
-    "المدينة المنورة",
-    "الدمام",
-    "الخبر",
-    "الأحساء",
-    "الطائف",
-    "بريدة",
-    "تبوك",
-    "أبها",
-    "خميس مشيط",
-    "حائل",
-    "نجران",
-    "جيزان",
-    "ينبع",
+    "الخليل",
+    "القدس",
+    "أريحا",
+    "بيت لحم",
+    "جنين",
+    "نابلس",
+    "رام الله",
+    "قلقيلية",
+    "رام الله و البيرة",
+    "سلفيت",
+    "طوباس",
+    "طولكرم",
   ],
   dressSizes: ["XS", "S", "M", "L", "XL", "XXL"],
   limits: {
@@ -47,7 +43,7 @@ export const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const formatPrice = (amount: number) =>
-  `${new Intl.NumberFormat(site.locale).format(amount)} ${site.currency}`;
+  `${new Intl.NumberFormat(site.locale, { numberingSystem: "latn" }).format(amount)}${site.currency}`;
 
 export const formatDate = (date: Date) =>
   new Intl.DateTimeFormat(site.locale, {

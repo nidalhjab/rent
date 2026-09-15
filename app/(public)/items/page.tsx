@@ -16,7 +16,7 @@ export default function ItemsPage({ searchParams }: PageProps<"/items">) {
       <h1 className="text-3xl font-bold">{t.browse.title}</h1>
 
       {/* Both children read `searchParams`, so they stream while the shell is static. */}
-      <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+      <Suspense fallback={<Skeleton className="h-16 w-full" />}>
         <ItemsFilters searchParams={searchParams} />
       </Suspense>
 
