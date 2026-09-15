@@ -40,8 +40,15 @@ export function parseItemFilters(params: RawSearchParams): ItemFilters {
   };
 }
 
-/** Rebuilds `/items?...` from parsed filters, used by the pagination links. */
-export function buildItemsUrl(filters: ItemFilters, overrides: { page?: number } = {}) {
+/**
+ * Rebuilds `/items?...` from parsed filters. `overrides` is merged on top, so
+ * pagination links and the "remove this filter" chips share one code path.
+ */
+export function buildItemsUrl(
+  filters: ItemFilters,
+  overrides: Partial<ItemFilters> = {},
+) {
+  const merged = { ...filters, ...overrides };
   const query = new URLSearchParams();
   const set = (key: string, value: string | number | undefined) => {
     if (value !== undefined && value !== "" && value !== 0) {
@@ -49,17 +56,17 @@ export function buildItemsUrl(filters: ItemFilters, overrides: { page?: number }
     }
   };
 
-  set("q", filters.search);
-  set("category", filters.category);
-  set("size", filters.size);
-  set("color", filters.color);
-  set("condition", filters.condition);
-  set("city", filters.city);
-  set("maxPrice", filters.maxPrice);
-  set("sort", filters.sort);
-  if (filters.availableOnly) query.set("available", "1");
+  set("q", merged.search);
+  set("category", merged.category);
+  set("size", merged.size);
+  set("color", merged.color);
+  set("condition", merged.condition);
+  set("city", merged.city);
+  set("maxPrice", merged.maxPrice);
+  set("sort", merged.sort);
+  if (merged.availableOnly) query.set("available", "1");
 
-  const page = overrides.page ?? filters.page ?? 1;
+  const page = merged.page ?? 1;
   if (page > 1) query.set("page", String(page));
 
   const search = query.toString();
