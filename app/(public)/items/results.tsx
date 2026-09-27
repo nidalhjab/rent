@@ -23,8 +23,8 @@ export async function ItemsResults({
       <p className="text-sm text-muted">{t.browse.resultsCount(total)}</p>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {items.map((item) => (
-          <ItemCard key={item.id} item={item} />
+        {items.map((item, index) => (
+          <ItemCard key={item.id} item={item} eager={index < 2} />
         ))}
       </div>
 

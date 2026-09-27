@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { Container } from "@/components/ui/container";
 import { t } from "@/messages/ar";
 import { SubmitItemForm } from "./submit-form";
 
-export const metadata: Metadata = {
-  title: t.submit.title,
-};
+export const metadata = pageMetadata({ title: t.submit.title, description: t.submit.intro, path: "/items/new" });
 
 export default function NewItemPage() {
   return (

@@ -24,7 +24,10 @@ export async function downscaleImage(file: File): Promise<Blob> {
     canvas.height = height;
 
     const context = canvas.getContext("2d");
-    if (!context) return file;
+    if (!context) {
+      bitmap.close();
+      return file;
+    }
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 

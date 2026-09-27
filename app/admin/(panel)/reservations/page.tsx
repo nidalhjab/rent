@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { t } from "@/messages/ar";
 import { approveReservation, rejectReservation } from "../actions";
+import { addDays, formatBookingDate, todayInPalestine } from "@/lib/booking-dates";
 
 const requestTone = {
   PENDING: "warning",
@@ -84,11 +85,16 @@ export default async function AdminReservationsPage() {
                   <dt className="text-muted">{t.admin.preferredDate}</dt>
                   <dd className="font-medium">
                     {reservation.preferredDate
-                      ? formatDate(reservation.preferredDate)
+                      ? formatBookingDate(reservation.preferredDate)
                       : "—"}
                   </dd>
                 </div>
               </dl>
+              <p className="text-sm text-muted">
+                {reservation.preferredDate
+                  ? `${t.item.nextRental}: ${formatBookingDate(addDays(reservation.preferredDate.toISOString().slice(0, 10), 3))}`
+                  : t.item.legacyDate}
+              </p>
 
               {reservation.note ? (
                 <p className="rounded-xl bg-subtle p-3 text-sm text-muted">
@@ -99,7 +105,7 @@ export default async function AdminReservationsPage() {
               <div className="flex flex-wrap gap-2">
                 <form action={approveReservation}>
                   <input type="hidden" name="id" value={reservation.id} />
-                  <Button type="submit" variant="success" size="sm">
+                  <Button type="submit" variant="success" size="sm" disabled={!reservation.preferredDate || reservation.preferredDate.toISOString().slice(0, 10) < todayInPalestine()}>
                     {t.admin.approve}
                   </Button>
                 </form>

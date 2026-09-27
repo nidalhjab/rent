@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import Link from "next/link";
+import { itemStructuredData, serializeJsonLd } from "@/lib/seo";
 import {
-  AvailabilityBadge,
   ConditionBadge,
 } from "@/components/item/item-badges";
 import { ItemCard } from "@/components/item/item-card";
@@ -9,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/config/site";
 import { getItem, listRelatedItems } from "@/lib/items";
 import { t } from "@/messages/ar";
-import { ReserveSection } from "./reserve-section";
-import { TryOnSection } from "./try-on-section";
+import { ReservationAvailability } from "./reservation-availability";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ItemReservationStatus } from "@/components/item/item-reservation-status";
 
 export async function ItemDetail({
   params,
@@ -20,19 +23,22 @@ export async function ItemDetail({
   if (!item) notFound();
 
   const related = await listRelatedItems(item.id, item.category);
-  const hasFrontAndBack =
-    item.images.some((image) => image.role === "FRONT") &&
-    item.images.some((image) => image.role === "BACK");
 
   return (
     <div className="space-y-14">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemStructuredData(item)) }} />
+      <nav aria-label={t.nav.breadcrumb} className="flex flex-wrap gap-2 text-sm text-muted">
+        <Link href="/">{t.nav.home}</Link><span aria-hidden="true">/</span>
+        <Link href="/items">{t.browse.title}</Link><span aria-hidden="true">/</span>
+        <span aria-current="page" className="break-words">{item.title}</span>
+      </nav>
       <div className="grid gap-8 lg:grid-cols-2">
         <ItemGallery images={item.images} title={item.title} />
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <AvailabilityBadge availability={item.availability} />
+              <ItemReservationStatus item={item} />
               <ConditionBadge condition={item.condition} />
               <Badge>{t.enums.category[item.category]}</Badge>
             </div>
@@ -89,21 +95,19 @@ export async function ItemDetail({
             </section>
           ) : null}
 
-          <ReserveSection
-            itemId={item.id}
-            available={item.availability === "AVAILABLE"}
-          />
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+            <ReservationAvailability itemId={item.id} />
+          </Suspense>
         </div>
       </div>
 
-      <TryOnSection itemId={item.id} enabled={hasFrontAndBack} />
 
       {related.length > 0 ? (
         <section>
           <h2 className="mb-4 text-2xl font-bold">{t.item.relatedTitle}</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
             {related.map((relatedItem) => (
-              <ItemCard key={relatedItem.id} item={relatedItem} />
+              <ItemCard key={relatedItem.id} item={relatedItem} sizes="(min-width: 1152px) 352px, (min-width: 1024px) 33vw, 50vw" />
             ))}
           </div>
         </section>

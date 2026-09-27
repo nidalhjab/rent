@@ -5,7 +5,13 @@ import { PrismaClient } from "@/lib/generated/prisma/client";
 const createPrismaClient = () =>
   new PrismaClient({
     // Pooled Neon endpoint over WebSockets, which is what serverless needs.
-    adapter: new PrismaNeon({ connectionString: requireEnv("DATABASE_URL") }),
+    adapter: new PrismaNeon({
+      connectionString: requireEnv("DATABASE_URL"),
+      max: 5,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
+      statement_timeout: 15_000,
+    }),
     log: process.env.NODE_ENV === "production" ? ["error"] : ["warn", "error"],
   });
 

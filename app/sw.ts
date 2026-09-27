@@ -3,6 +3,7 @@ import {
   CacheFirst,
   CacheableResponsePlugin,
   ExpirationPlugin,
+  NetworkOnly,
   Serwist,
   type PrecacheEntry,
   type SerwistGlobalConfig,
@@ -22,6 +23,12 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    {
+      // Never replay cached calendars, personal admin data, or API responses.
+      matcher: ({ url }) => url.origin === self.location.origin &&
+        (/^\/admin(?:\/|$)/.test(url.pathname) || /^\/api(?:\/|$)/.test(url.pathname) || /^\/items\/[^/]+\/?$/.test(url.pathname)),
+      handler: new NetworkOnly(),
+    },
     {
       // Dress photos and AI renders are immutable once uploaded, so serving
       // them from the cache makes repeat visits instant and offline-friendly.

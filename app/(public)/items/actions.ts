@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath, updateTag } from "next/cache";
+import { ITEMS_TAG } from "@/lib/items";
 import { site } from "@/config/site";
 import { verifyUploadedImage } from "@/lib/cloudinary";
 import { prisma } from "@/lib/db";
@@ -11,6 +13,7 @@ import {
   type FormState,
 } from "@/lib/validation";
 import { t } from "@/messages/ar";
+import { createReservation, ItemUnavailable, ReservationConflict } from "@/lib/reservations";
 
 export async function submitItem(
   _state: FormState,
@@ -85,25 +88,21 @@ export async function requestReservation(
   if (!parsed.success) return fieldErrors(parsed.error);
   const data = parsed.data;
 
-  const item = await prisma.item.findFirst({
-    where: {
-      id: data.itemId,
-      moderation: "APPROVED",
-      availability: "AVAILABLE",
-    },
-    select: { id: true },
-  });
-  if (!item) return { error: t.validation.unavailable };
-
-  await prisma.reservation.create({
-    data: {
-      itemId: item.id,
-      renterName: data.renterName,
-      renterPhone: data.renterPhone,
-      note: data.note,
-      preferredDate: data.preferredDate,
-    },
-  });
-
+  try {
+    await createReservation(data);
+  } catch (error) {
+    if (error instanceof ItemUnavailable) return { error: t.validation.unavailable };
+    if (error instanceof ReservationConflict) {
+      updateTag(ITEMS_TAG);
+      revalidatePath(`/items/${data.itemId}`);
+      return { errors: { preferredDate: [t.validation.dateBooked] } };
+    }
+    // Do not leak database details, and let the user retry a failed connection.
+    console.error("Reservation request failed", error instanceof Error ? error.name : "UnknownError");
+    return { error: t.form.genericError };
+  }
+  updateTag(ITEMS_TAG);
+  revalidatePath(`/items/${data.itemId}`);
+  revalidatePath("/admin/reservations");
   return { status: "success" };
 }

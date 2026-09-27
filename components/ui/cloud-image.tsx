@@ -1,8 +1,7 @@
 "use client";
 
 import Image, { type ImageProps } from "next/image";
-
-const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+import { cloudImageUrl } from "@/lib/image-url";
 
 /**
  * Resizing happens on Cloudinary's CDN rather than through `/_next/image`, so
@@ -16,10 +15,7 @@ const cloudinaryLoader = ({
   src: string;
   width: number;
   quality?: number;
-}) =>
-  `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_${
-    quality ?? "auto"
-  },c_limit,w_${width}/${src}`;
+}) => cloudImageUrl(src, width, quality);
 
 export function CloudImage({ alt, ...props }: Omit<ImageProps, "loader">) {
   return <Image loader={cloudinaryLoader} alt={alt} {...props} />;
