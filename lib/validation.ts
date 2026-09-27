@@ -2,6 +2,7 @@ import { z } from "zod";
 import { site } from "@/config/site";
 import { Category, Condition, SkinTone } from "@/lib/generated/prisma/enums";
 import { t } from "@/messages/ar";
+import { addDays, BOOKING_WINDOW_DAYS, isCalendarDate, todayInPalestine } from "@/lib/booking-dates";
 
 const v = t.validation;
 
@@ -49,12 +50,9 @@ export const reservationSchema = z.object({
   renterName: name,
   renterPhone: phone,
   note: optionalText(500, v.note),
-  preferredDate: z
-    .union([z.literal(""), z.coerce.date()])
-    .optional()
-    .transform((value) =>
-      value === "" || value === undefined ? undefined : new Date(value),
-    ),
+  preferredDate: z.string({ message: v.date }).refine(isCalendarDate, v.date)
+    .refine((value) => value >= todayInPalestine(), v.datePast)
+    .refine((value) => value <= addDays(todayInPalestine(), BOOKING_WINDOW_DAYS), v.dateWindow),
 });
 
 export const tryOnSchema = z.object({

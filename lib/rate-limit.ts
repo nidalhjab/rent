@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { rateLimitStatement } from "@/lib/rate-limit-query";
 
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
@@ -24,26 +25,10 @@ export async function consumeRateLimit({
   limit: number;
   windowMs: number;
 }): Promise<boolean> {
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - windowMs);
-  const existing = await prisma.rateLimit.findUnique({ where: { key } });
-
-  if (!existing || existing.windowStart < cutoff) {
-    await prisma.rateLimit.upsert({
-      where: { key },
-      create: { key, count: 1, windowStart: now },
-      update: { count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  if (existing.count >= limit) return false;
-
-  await prisma.rateLimit.update({
-    where: { key },
-    data: { count: { increment: 1 } },
-  });
-  return true;
+  const rows = await prisma.$queryRaw<{ key: string }[]>(
+    rateLimitStatement(key, limit, windowMs, new Date()),
+  );
+  return rows.length === 1;
 }
 
 export async function clearRateLimit(key: string) {

@@ -1,11 +1,13 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { deleteImages } from "@/lib/cloudinary";
 import { prisma } from "@/lib/db";
 import { Availability } from "@/lib/generated/prisma/enums";
 import { ITEMS_TAG } from "@/lib/items";
+import { lockItem } from "@/lib/reservations";
+import { dateValue, todayInPalestine } from "@/lib/booking-dates";
 
 const idOf = (formData: FormData) => String(formData.get("id") ?? "");
 
@@ -54,25 +56,22 @@ export async function approveReservation(formData: FormData) {
   });
   if (!reservation) return;
 
-  const decidedAt = new Date();
-
-  await prisma.$transaction([
-    prisma.reservation.update({
-      where: { id },
-      data: { status: "APPROVED", decidedAt },
-    }),
-    // Once one request wins, the others for the same item can't be honoured.
-    prisma.reservation.updateMany({
-      where: { itemId: reservation.itemId, status: "PENDING", id: { not: id } },
-      data: { status: "REJECTED", decidedAt },
-    }),
-    prisma.item.update({
-      where: { id: reservation.itemId },
-      data: { availability: "RESERVED" },
-    }),
-  ]);
-
+  await prisma.$transaction(async (tx) => {
+    await lockItem(tx, reservation.itemId);
+    // A stale admin form cannot approve a rejected/already decided request.
+    // Dates already belong to the pending request; other dates stay bookable.
+    await tx.reservation.updateMany({
+      where: {
+        id, status: "PENDING",
+        preferredDate: { gte: dateValue(todayInPalestine()) },
+        item: { moderation: "APPROVED", availability: "AVAILABLE" },
+      },
+      data: { status: "APPROVED", decidedAt: new Date() },
+    });
+  });
   updateTag(ITEMS_TAG);
+  revalidatePath("/admin/reservations");
+  revalidatePath(`/items/${reservation.itemId}`);
 }
 
 export async function rejectReservation(formData: FormData) {
@@ -80,10 +79,18 @@ export async function rejectReservation(formData: FormData) {
   const id = idOf(formData);
   if (!id) return;
 
-  await prisma.reservation.update({
-    where: { id },
-    data: { status: "REJECTED", decidedAt: new Date() },
+  const reservation = await prisma.reservation.findUnique({ where: { id }, select: { itemId: true } });
+  if (!reservation) return;
+  await prisma.$transaction(async (tx) => {
+    await lockItem(tx, reservation.itemId);
+    await tx.reservation.updateMany({
+      where: { id, status: "PENDING" },
+      data: { status: "REJECTED", decidedAt: new Date() },
+    });
   });
+  updateTag(ITEMS_TAG);
+  revalidatePath("/admin/reservations");
+  revalidatePath(`/items/${reservation.itemId}`);
 }
 
 export async function setItemAvailability(formData: FormData) {

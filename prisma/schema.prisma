@@ -118,7 +118,9 @@ model Reservation {
   renterName    String
   renterPhone   String
   note          String?
-  preferredDate DateTime?
+  /// Reservation date. The database enforces a 3-day availability gap.
+  /// Nullable only for legacy requests; all new requests require a date.
+  preferredDate DateTime?     @db.Date
   status        RequestStatus @default(PENDING)
   createdAt     DateTime      @default(now())
   decidedAt     DateTime?
@@ -127,6 +129,7 @@ model Reservation {
 
   @@index([status, createdAt])
   @@index([itemId])
+  @@index([itemId, status, preferredDate])
 }
 
 /// Doubles as the generation job and the shared cache: visitors with identical

@@ -7,7 +7,7 @@ export const site = {
   nameLatin: "Labsa",
   tagline: "استأجري فستان أحلامك، وأجّري فستانك",
   description:
-    "منصة عربية لتأجير الفساتين المستعملة بحالة ممتازة وسعر مناسب، مع تجربة قياس ذكية بالذكاء الاصطناعي.",
+    "تصفّحي فساتين مستعملة للإيجار في فلسطين على لُبسة. فساتين سهرة ومناسبات بحالة ممتازة وأسعار بالشيكل، مع البحث حسب المدينة والمقاس والاطلاع على مواعيد الحجز المتاحة.",
   themeColor: "#c0426b",
   backgroundColor: "#fff9f7",
   currency: "₪",
@@ -39,8 +39,9 @@ export const site = {
   },
 } as const;
 
-export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+export const siteUrl = new URL(
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://rent-jade-sigma.vercel.app",
+).origin;
 
 export const formatPrice = (amount: number) =>
   `${new Intl.NumberFormat(site.locale, { numberingSystem: "latn" }).format(amount)}${site.currency}`;
@@ -49,4 +50,5 @@ export const formatDate = (date: Date) =>
   new Intl.DateTimeFormat(site.locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Hebron",
   }).format(date);

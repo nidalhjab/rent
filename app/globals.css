@@ -29,6 +29,17 @@ html {
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  overflow-wrap: anywhere;
+}
+
+:where(main, section, article, form, fieldset) { min-width: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Number inputs read better without the spinners in an RTL form layout. */
@@ -39,7 +50,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 @utility field {
-  @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm
+  @apply min-w-0 w-full rounded-xl border border-border bg-surface px-4 py-3 text-base sm:text-sm
     outline-none transition placeholder:text-muted/70
     focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60;
 }

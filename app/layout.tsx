@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     template: `%s | ${site.name}`,
   },
   description: site.description,
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: site.name },
   formatDetection: { telephone: false },
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: site.name,
-    locale: "ar_SA",
+    locale: "ar_PS",
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
   },
@@ -45,7 +47,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="ar"
+      lang="ar-PS"
       dir="rtl"
       className={`${arabic.variable} h-full antialiased`}
     >

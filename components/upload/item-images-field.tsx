@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { downscaleImage } from "@/lib/downscale-image";
 import { t } from "@/messages/ar";
 
@@ -25,8 +25,8 @@ const emptySlots = (): Record<Role, Slot> => ({
   DETAIL: { status: "empty" },
 });
 
-async function uploadToCloudinary(blob: Blob): Promise<string> {
-  const signResponse = await fetch("/api/uploads/sign", { method: "POST" });
+async function uploadToCloudinary(blob: Blob, signal: AbortSignal): Promise<string> {
+  const signResponse = await fetch("/api/uploads/sign", { method: "POST", signal });
   if (!signResponse.ok) throw new Error("sign failed");
   const sign = await signResponse.json();
 
@@ -39,7 +39,7 @@ async function uploadToCloudinary(blob: Blob): Promise<string> {
 
   const upload = await fetch(
     `https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`,
-    { method: "POST", body },
+    { method: "POST", body, signal },
   );
   if (!upload.ok) throw new Error("upload failed");
 
@@ -49,21 +49,43 @@ async function uploadToCloudinary(blob: Blob): Promise<string> {
 
 export function ItemImagesField({ error }: { error?: string }) {
   const [slots, setSlots] = useState(emptySlots);
+  const uploads = useRef<Partial<Record<Role, { controller: AbortController; preview: string }>>>({});
+
+  useEffect(() => {
+    const active = uploads.current;
+    return () => {
+      for (const role of ROLES) {
+        active[role]?.controller.abort();
+        if (active[role]) URL.revokeObjectURL(active[role].preview);
+        delete active[role];
+      }
+    };
+  }, []);
 
   async function handleChange(role: Role, file: File | undefined) {
     if (!file) return;
 
+    const previous = uploads.current[role];
+    previous?.controller.abort();
+    if (previous) URL.revokeObjectURL(previous.preview);
+    const controller = new AbortController();
     const preview = URL.createObjectURL(file);
+    uploads.current[role] = { controller, preview };
+    const timeout = window.setTimeout(() => controller.abort(), 90_000);
     setSlots((prev) => ({ ...prev, [role]: { status: "uploading", preview } }));
 
     try {
-      const publicId = await uploadToCloudinary(await downscaleImage(file));
+      const publicId = await uploadToCloudinary(await downscaleImage(file), controller.signal);
+      if (uploads.current[role]?.controller !== controller) return;
       setSlots((prev) => ({
         ...prev,
         [role]: { status: "done", publicId, preview },
       }));
     } catch {
+      if (uploads.current[role]?.controller !== controller) return;
       setSlots((prev) => ({ ...prev, [role]: { status: "error", preview } }));
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 

@@ -4,6 +4,9 @@ import { Container } from "@/components/ui/container";
 import { site } from "@/config/site";
 import { countPublishedItems, listLatestItems } from "@/lib/items";
 import { t } from "@/messages/ar";
+import { absoluteUrl, pageMetadata, serializeJsonLd } from "@/lib/seo";
+
+export const metadata = pageMetadata({ title: "فساتين مستعملة للإيجار في فلسطين", path: "/" });
 
 export default async function HomePage() {
   // Both reads are `use cache` functions, so the whole page prerenders.
@@ -14,6 +17,12 @@ export default async function HomePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({
+        "@context": "https://schema.org", "@graph": [
+          { "@type": "WebSite", "@id": `${absoluteUrl("/")}#website`, url: absoluteUrl("/"), name: site.name, alternateName: site.nameLatin, inLanguage: "ar-PS", description: site.description },
+          { "@type": "Organization", "@id": `${absoluteUrl("/")}#organization`, name: site.name, url: absoluteUrl("/"), logo: absoluteUrl("/icon-512.png"), areaServed: { "@type": "Country", name: "فلسطين" } },
+        ],
+      }) }} />
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-soft to-background">
         <Container className="py-16 sm:py-24">
           <div className="mx-auto max-w-2xl text-center">
@@ -81,7 +90,7 @@ export default async function HomePage() {
           <h2 className="mb-8 text-center text-2xl font-bold">
             {t.home.howTitle}
           </h2>
-          <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {t.home.howSteps.map((step, index) => (
               <li
                 key={step.title}
@@ -110,6 +119,13 @@ export default async function HomePage() {
             {t.home.ctaAdd}
           </ButtonLink>
         </div>
+      </Container>
+      <Container className="space-y-5 pb-14">
+        <h2 className="text-2xl font-bold">{t.home.faqTitle}</h2>
+        {t.home.faq.map((entry) => <details key={entry.question} className="rounded-card border border-border bg-surface p-5">
+          <summary className="cursor-pointer font-semibold">{entry.question}</summary>
+          <p className="mt-3 text-sm leading-relaxed text-muted">{entry.answer}</p>
+        </details>)}
       </Container>
     </>
   );

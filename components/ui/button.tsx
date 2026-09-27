@@ -5,7 +5,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium transition " +
+  "inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full font-medium transition " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
   "disabled:pointer-events-none disabled:opacity-55";
 
